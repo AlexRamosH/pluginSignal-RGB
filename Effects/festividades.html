@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Festividades Automáticas</title>
+    <!-- Metadatos de SignalRGB -->
+    <meta property="effectSpeed" label="Velocidad del Efecto" type="number" min="1" max="100" default="35">
+    <meta property="holidayMode" label="Festividad" type="combobox" values="Automático por Calendario, Fiestas Patrias (Mex), Halloween, Día de Muertos, Navidad, San Valentín, Año Nuevo, Aurora Boreal (Normal)" default="Automático por Calendario">
+</head>
+<body style="margin: 0; padding: 0; overflow: hidden; background: #000;">
+    <!-- El lienzo estándar donde SignalRGB toma las muestras de color -->
+    <canvas id="exCanvas" width="320" height="200"></canvas>
+
+    <script>
+        const canvas = document.getElementById("exCanvas");
+        const ctx = canvas.getContext("2d");
+        const W = canvas.width;
+        const H = canvas.height;
+
+        let tick = 0;
+
+        // Detectar festividad actual según el reloj de Windows
+        function getCurrentHoliday() {
+            const now = new Date();
+            const m = now.getMonth() + 1; // 1 = Enero, 12 = Diciembre
+            const d = now.getDate();
+
+            if (m === 9) return "patria";                       // Todo Septiembre
+            if (m === 10 && d >= 15) return "halloween";        // 15 al 31 de Octubre
+            if (m === 11 && (d === 1 || d === 2)) return "muertos"; // 1 y 2 de Noviembre
+            if (m === 12) return "navidad";                     // Todo Diciembre
+            if ((m === 12 && d === 31) || (m === 1 && d === 1)) return "ano_nuevo"; // Fin de año
+            if (m === 2 && d >= 10 && d <= 16) return "amor";   // Semana de San Valentín
+
+            return "default";
+        }
+
+        function update() {
+            const speed = (typeof effectSpeed !== "undefined" ? effectSpeed : 35) / 10;
+            tick += speed * 0.05;
+
+            // Determinar modo
+            let mode = "default";
+            if (typeof holidayMode === "undefined" || holidayMode === "Automático por Calendario") {
+                mode = getCurrentHoliday();
+            } else if (holidayMode.includes("Patrias")) mode = "patria";
+            else if (holidayMode.includes("Halloween")) mode = "halloween";
+            else if (holidayMode.includes("Muertos")) mode = "muertos";
+            else if (holidayMode.includes("Navidad")) mode = "navidad";
+            else if (holidayMode.includes("San Valentín")) mode = "amor";
+            else if (holidayMode.includes("Año Nuevo")) mode = "ano_nuevo";
+            else mode = "default";
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Render según la fecha / festividad
+            switch (mode) {
+                case "patria": {
+                    // Verde (#006847), Blanco (#FFFFFF), Rojo (#CE1126) en onda ondeante
+                    const grad = ctx.createLinearGradient(0, 0, W, 0);
+                    let shift = (Math.sin(tick * 0.5) + 1) / 2;
+                    grad.addColorStop(0.0, "#006847");
+                    grad.addColorStop(Math.max(0.1, 0.45 * shift), "#008542");
+                    grad.addColorStop(0.5, "#FFFFFF");
+                    grad.addColorStop(Math.min(0.9, 0.55 + 0.35 * shift), "#CE1126");
+                    grad.addColorStop(1.0, "#CE1126");
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+
+                case "halloween": {
+                    // Naranja calabaza, Morado tétrico y Verde radioactivo con parpadeo
+                    const grad = ctx.createRadialGradient(W/2 + Math.sin(tick)*60, H/2, 10, W/2, H/2, W);
+                    let flicker = 0.85 + Math.random() * 0.15;
+                    grad.addColorStop(0.0, `rgba(255, 102, 0, ${flicker})`); // Naranja
+                    grad.addColorStop(0.5, "#4B0082");                       // Morado
+                    grad.addColorStop(1.0, "#103500");                       // Verde oscuro
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+
+                case "muertos": {
+                    // Naranja Cempasúchil (#FF7900), Rosa Mexicano (#E4007C), Morado (#6A0DAD)
+                    const grad = ctx.createLinearGradient(0, 0, W * Math.cos(tick*0.3), H * Math.sin(tick*0.3));
+                    grad.addColorStop(0.0, "#FF7900");
+                    grad.addColorStop(0.5, "#E4007C");
+                    grad.addColorStop(1.0, "#6A0DAD");
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+
+                case "navidad": {
+                    // Rojo bastón de caramelo, Verde pino y destellos dorados
+                    const grad = ctx.createLinearGradient(W * (Math.sin(tick * 0.4)), 0, W, H);
+                    grad.addColorStop(0.0, "#D42426"); // Rojo
+                    grad.addColorStop(0.4, "#165B33"); // Verde Pino
+                    grad.addColorStop(0.7, "#F8B229"); // Dorado
+                    grad.addColorStop(1.0, "#FFFFFF"); // Nieve
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+
+                case "ano_nuevo": {
+                    // Fondo negro con chispas de confeti doradas, plateadas y blancas
+                    ctx.fillStyle = "#0A0A10";
+                    ctx.fillRect(0, 0, W, H);
+                    for (let i = 0; i < 20; i++) {
+                        let sparkX = (Math.sin(i * 99 + tick * 2) * 0.5 + 0.5) * W;
+                        let sparkY = (Math.cos(i * 33 + tick * 3) * 0.5 + 0.5) * H;
+                        let rad = (Math.sin(tick * 4 + i) + 1) * 8 + 2;
+                        let colors = ["#FFD700", "#FFFFFF", "#C0C0C0", "#FF4500"];
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.beginPath();
+                        ctx.arc(sparkX, sparkY, rad, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                }
+
+                case "amor": {
+                    // San Valentín: Pulso de corazón (latido) entre Rojo profundo y Rosa
+                    let beat = Math.pow(Math.sin(tick * 2), 63) * 0.5 + Math.pow(Math.sin(tick * 2 + 0.4), 63) * 0.5;
+                    const grad = ctx.createRadialGradient(W/2, H/2, 5, W/2, H/2, 100 + beat * 60);
+                    grad.addColorStop(0.0, "#FF0055");
+                    grad.addColorStop(0.6, "#800020");
+                    grad.addColorStop(1.0, "#1A000A");
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+
+                default: {
+                    // Día normal: Aurora boreal suave (Cian, Azul eléctrico, Violeta, Esmeralda)
+                    const grad = ctx.createLinearGradient(0, 0, W, H);
+                    let offset = (tick * 20) % 360;
+                    grad.addColorStop(0.0, `hsl(${offset}, 90%, 55%)`);
+                    grad.addColorStop(0.5, `hsl(${(offset + 60) % 360}, 85%, 50%)`);
+                    grad.addColorStop(1.0, `hsl(${(offset + 120) % 360}, 80%, 45%)`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, W, H);
+                    break;
+                }
+            }
+
+            window.requestAnimationFrame(update);
+        }
+
+        window.requestAnimationFrame(update);
+    </script>
+</body>
+</html>
